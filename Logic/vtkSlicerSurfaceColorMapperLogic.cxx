@@ -79,6 +79,8 @@ vtkSlicerSurfaceColorMapperLogic::vtkSlicerSurfaceColorMapperLogic()
   this->Mapper   = NULL;
   this->Actor    = NULL;
   this->Renderer = NULL;
+
+  this->ProjectionMode = false;
 }
 
 //----------------------------------------------------------------------------
@@ -200,18 +202,20 @@ void vtkSlicerSurfaceColorMapperLogic::UpdateTexture()
   vtkSmartPointer<vtkUnsignedCharArray> colors =
     vtkSmartPointer<vtkUnsignedCharArray>::New();
   colors->SetName("Colors");
-  //colors->SetNumberOfComponents(3);
   colors->SetNumberOfComponents(1);
   colors->SetNumberOfTuples(n);
 
-  const double low   = this->Level - this->Window/2.0;
-  const double scale = 255.0 / this->Window;
+  //const double low   = this->Level - this->Window/2.0;
+  //const double scale = 255.0 / this->Window;
 
   vtkSmartPointer<vtkDataArray> norms = this->PolyData->GetPointData()->GetNormals();
 
   if (!this->PointValue)
     {
     this->PointValue = vtkDoubleArray::New();
+    this->PointValue->SetName("Colors");
+    this->PointValue->SetNumberOfComponents(1);
+    this->PointValue->SetNumberOfTuples(n);
     this->NeedModelUpdate = 1;
     }
 
@@ -220,10 +224,7 @@ void vtkSlicerSurfaceColorMapperLogic::UpdateTexture()
     this->PointValue->Reset();
     }
 
-  double min;
-  double max;
   int init = 0;
-
   for (int i = 0; i < n; i ++)
     {
     if (this->NeedModelUpdate)
@@ -237,19 +238,28 @@ void vtkSlicerSurfaceColorMapperLogic::UpdateTexture()
       norms->GetTuple(i, n);
       
       // Calculate projection
-      double sum = 0;
-      int nstep = 0;
-      for (double d = this->Lower; d <= this->Upper; d += this->Step)
+      double value;
+      if (this->ProjectionMode)
         {
-        double p[3];
-        p[0] = x[0] + n[0]*d;
-        p[1] = x[1] + n[1]*d;
-        p[2] = x[2] + n[2]*d;
-        sum += TrilinearInterpolation(vnode, p);
-        nstep ++;
+        double sum = 0;
+        int nstep = 0;
+        for (double d = this->Lower; d <= this->Upper; d += this->Step)
+          {
+          double p[3];
+          p[0] = x[0] + n[0]*d;
+          p[1] = x[1] + n[1]*d;
+          p[2] = x[2] + n[2]*d;
+          sum += TrilinearInterpolation(vnode, p);
+          nstep ++;
+          }
+        value = sum / (double)nstep;
         }
-      double value = sum / (double)nstep;
+      else
+        {
+        value = TrilinearInterpolation(vnode, x);
+        }
 
+      /*
       if (init == 1)
         {
         min = max = this->PointValue->GetValue(0);
@@ -263,69 +273,32 @@ void vtkSlicerSurfaceColorMapperLogic::UpdateTexture()
         {
         max = value;
         }
+      */
       this->PointValue->InsertValue(i, value);
       }
       
-    double intensity = (this->PointValue->GetValue(i) - low) * scale;
-    if (intensity > 255.0)
-      {
-      intensity = 255.0;
-      }
-    else if (intensity < 0.0)
-      {
-      intensity = 0.0;
-      }
-    unsigned char cv = (unsigned char) intensity;
-
-    //colors->InsertTuple3(i, cv, cv, cv);
-    colors->InsertValue(i, cv);
+    //double intensity = (this->PointValue->GetValue(i) - low) * scale;
+    //if (intensity > 255.0)
+    //  {
+    //  intensity = 255.0;
+    //  }
+    //else if (intensity < 0.0)
+    //  {
+    //  intensity = 0.0;
+    //  }
+    //unsigned char cv = (unsigned char) intensity;
+    //colors->InsertValue(i, cv);
     }
 
-  //if (this->NeedModelUpdate)
-  //  {
-  //  this->WindowLevelRange->SetWholeRange(min, max);
-  //  }
-
-
-  //this->NeedModelUpdate = 0;
-  //this->PolyData->GetPointData()->SetScalars(colors);
-  //this->PolyData->Update();
-  //
-  //if (!this->Mapper)
-  //  {
-  //  this->Mapper = vtkPolyDataMapper::New();
-  //  this->Mapper->SetInput(this->PolyData);
-  //  this->Mapper->SetScalarModeToUsePointFieldData();
-  //  this->Mapper->SelectColorArray("Colors");
-  //  }
-  //this->Mapper->ScalarVisibilityOn();
-  //this->Mapper->Update();
-  //
-  //if (!this->Actor)
-  //  {
-  //  this->Actor = vtkActor::New();
-  //  this->Actor->SetMapper(this->Mapper);
-  //  }
-
-  //vtkSlicerViewerWidget *viewer_widget = this->GetApplicationGUI()->GetActiveViewerWidget();
-  //if (viewer_widget)
-  //  {
-  //  if (!this->Renderer)
-  //    {
-  //    this->Renderer = viewer_widget->GetMainViewer()->GetRenderer();
-  //    this->Renderer->AddActor(this->Actor);
-  //    }
-  //  viewer_widget->RequestRender();
-  //  }
-
-  mnode->AddPointScalars(colors);
+  mnode->AddPointScalars(this->PointValue);
   mnode->SetActivePointScalars("Colors", vtkDataSetAttributes::SCALARS);
-  mnode->SetScalarRange(0.0, 255.0);
   mnode->Modified();
   vtkMRMLModelDisplayNode * dnode = mnode->GetModelDisplayNode();
   dnode->SetScalarVisibility(true);
   dnode->SetActiveScalarName("Colors");
-
+  double min = this->Level - this->Window/2;
+  double max = this->Level + this->Window/2;
+  dnode->SetScalarRange(min, max);
   if (cnode)
     {
     dnode->SetAndObserveColorNodeID(this->ColorTableNodeID.c_str());

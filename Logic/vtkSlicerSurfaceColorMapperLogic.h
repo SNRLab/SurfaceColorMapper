@@ -61,6 +61,8 @@ public:
   void   UpdateTexture();
   double TrilinearInterpolation(vtkMRMLScalarVolumeNode * vnode, double x[3]);
 
+  void   SetProjectionMode(bool s) { this->ProjectionMode = s; };
+
 protected:
   vtkSlicerSurfaceColorMapperLogic();
   virtual ~vtkSlicerSurfaceColorMapperLogic();
@@ -78,6 +80,8 @@ protected:
   virtual void OnMRMLSceneNodeAdded(vtkMRMLNode* node);
   virtual void OnMRMLSceneNodeRemoved(vtkMRMLNode* node);
 
+  bool                ProjectionMode;
+  
   vtkDoubleArray*     PointValue;
   vtkPolyDataNormals* PolyDataNormals;
   vtkPolyData*        PolyData;
