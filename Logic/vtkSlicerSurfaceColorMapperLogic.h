@@ -57,6 +57,7 @@ public:
 
   void   SetInputVolumeID(const char* nodeID) { this->VolumeNodeID = nodeID; };
   void   SetInputModelID(const char* nodeID) { this->ModelNodeID = nodeID; };
+  void   SetColorTableNodeID(const char* nodeID) { this->ColorTableNodeID = nodeID; };
   void   UpdateTexture();
   double TrilinearInterpolation(vtkMRMLScalarVolumeNode * vnode, double x[3]);
 
@@ -67,6 +68,7 @@ protected:
   //BTX
   std::string VolumeNodeID;
   std::string ModelNodeID;
+  std::string ColorTableNodeID;
   //ETX
 
   virtual void SetMRMLSceneInternal(vtkMRMLScene* newScene);

@@ -31,6 +31,7 @@
 
 #include "vtkMRMLScalarVolumeNode.h"
 #include "vtkMRMLModelNode.h"
+#include "vtkMRMLColorTableNode.h"
 
 //-----------------------------------------------------------------------------
 /// \ingroup Slicer_QtModules_ExtensionTemplate
@@ -165,9 +166,16 @@ void qSlicerSurfaceColorMapperModuleWidget::setSurfaceModelNode(vtkMRMLNode* n)
 }
 
 //-----------------------------------------------------------------------------
-void qSlicerSurfaceColorMapperModuleWidget::setColorTableNode(vtkMRMLNode*)
+void qSlicerSurfaceColorMapperModuleWidget::setColorTableNode(vtkMRMLNode* n)
 {
   Q_D(qSlicerSurfaceColorMapperModuleWidget);
+
+  vtkMRMLColorTableNode* node = vtkMRMLColorTableNode::SafeDownCast(n);
+  vtkSlicerSurfaceColorMapperLogic* logic = vtkSlicerSurfaceColorMapperLogic::SafeDownCast(this->logic());
+  if (node && logic)
+    {
+    logic->SetColorTableNodeID(node->GetID());
+    }
 }
 
 

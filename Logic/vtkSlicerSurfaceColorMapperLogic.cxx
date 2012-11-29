@@ -22,7 +22,6 @@
 
 // VTK includes
 #include <vtkNew.h>
-
 #include <vtkPolyData.h>
 #include <vtkPolyDataReader.h>
 #include <vtkImageData.h>
@@ -52,8 +51,10 @@
 #include <vtkCamera.h>
 #include <vtkMatrix4x4.h>
 
-#include <vtkMRMLScalarVolumeNode.h>
-#include <vtkMRMLModelNode.h>
+#include "vtkMRMLScalarVolumeNode.h"
+#include "vtkMRMLModelNode.h"
+#include "vtkMRMLColorTableNode.h"
+#include "vtkMRMLModelDisplayNode.h"
 
 // STD includes
 #include <cassert>
@@ -171,6 +172,14 @@ void vtkSlicerSurfaceColorMapperLogic::UpdateTexture()
     return;
     }
 
+  vtkMRMLColorTableNode* cnode
+    = vtkMRMLColorTableNode::SafeDownCast(scene->GetNodeByID(this->ColorTableNodeID.c_str()));
+  if (!cnode)
+    {
+    std::cerr << "Color table node was not found." << std::endl;
+    return;
+    }
+
   vtkPolyData* poly = mnode->GetPolyData();
 
   // Calculate normals
@@ -191,7 +200,8 @@ void vtkSlicerSurfaceColorMapperLogic::UpdateTexture()
   vtkSmartPointer<vtkUnsignedCharArray> colors =
     vtkSmartPointer<vtkUnsignedCharArray>::New();
   colors->SetName("Colors");
-  colors->SetNumberOfComponents(3);
+  //colors->SetNumberOfComponents(3);
+  colors->SetNumberOfComponents(1);
   colors->SetNumberOfTuples(n);
 
   const double low   = this->Level - this->Window/2.0;
@@ -267,7 +277,8 @@ void vtkSlicerSurfaceColorMapperLogic::UpdateTexture()
       }
     unsigned char cv = (unsigned char) intensity;
 
-    colors->InsertTuple3(i, cv, cv, cv);
+    //colors->InsertTuple3(i, cv, cv, cv);
+    colors->InsertValue(i, cv);
     }
 
   //if (this->NeedModelUpdate)
@@ -275,25 +286,26 @@ void vtkSlicerSurfaceColorMapperLogic::UpdateTexture()
   //  this->WindowLevelRange->SetWholeRange(min, max);
   //  }
 
-  this->NeedModelUpdate = 0;
-  this->PolyData->GetPointData()->SetScalars(colors);
-  this->PolyData->Update();
 
-  if (!this->Mapper)
-    {
-    this->Mapper = vtkPolyDataMapper::New();
-    this->Mapper->SetInput(this->PolyData);
-    this->Mapper->SetScalarModeToUsePointFieldData();
-    this->Mapper->SelectColorArray("Colors");
-    }
-  this->Mapper->ScalarVisibilityOn();
-  this->Mapper->Update();
-
-  if (!this->Actor)
-    {
-    this->Actor = vtkActor::New();
-    this->Actor->SetMapper(this->Mapper);
-    }
+  //this->NeedModelUpdate = 0;
+  //this->PolyData->GetPointData()->SetScalars(colors);
+  //this->PolyData->Update();
+  //
+  //if (!this->Mapper)
+  //  {
+  //  this->Mapper = vtkPolyDataMapper::New();
+  //  this->Mapper->SetInput(this->PolyData);
+  //  this->Mapper->SetScalarModeToUsePointFieldData();
+  //  this->Mapper->SelectColorArray("Colors");
+  //  }
+  //this->Mapper->ScalarVisibilityOn();
+  //this->Mapper->Update();
+  //
+  //if (!this->Actor)
+  //  {
+  //  this->Actor = vtkActor::New();
+  //  this->Actor->SetMapper(this->Mapper);
+  //  }
 
   //vtkSlicerViewerWidget *viewer_widget = this->GetApplicationGUI()->GetActiveViewerWidget();
   //if (viewer_widget)
@@ -306,7 +318,18 @@ void vtkSlicerSurfaceColorMapperLogic::UpdateTexture()
   //  viewer_widget->RequestRender();
   //  }
 
+  mnode->AddPointScalars(colors);
+  mnode->SetActivePointScalars("Colors", vtkDataSetAttributes::SCALARS);
+  mnode->SetScalarRange(0.0, 255.0);
+  mnode->Modified();
+  vtkMRMLModelDisplayNode * dnode = mnode->GetModelDisplayNode();
+  dnode->SetScalarVisibility(true);
+  dnode->SetActiveScalarName("Colors");
 
+  if (cnode)
+    {
+    dnode->SetAndObserveColorNodeID(this->ColorTableNodeID.c_str());
+    }
 }
 
 
