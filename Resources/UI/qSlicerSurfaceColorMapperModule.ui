@@ -94,7 +94,7 @@
          </widget>
         </item>
         <item row="3" column="1">
-         <widget class="qMRMLRangeWidget" name="MRMLRangeWidget"/>
+         <widget class="qMRMLRangeWidget" name="colorRangeWidget"/>
         </item>
        </layout>
       </item>

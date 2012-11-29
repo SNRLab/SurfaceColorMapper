@@ -22,6 +22,8 @@
 #include "qSlicerSurfaceColorMapperModuleWidget.h"
 #include "ui_qSlicerSurfaceColorMapperModule.h"
 
+#include "vtkImageData.h"
+
 #include "vtkSlicerSurfaceColorMapperLogic.h"
 
 #include "qSlicerApplication.h"
@@ -116,11 +118,14 @@ void qSlicerSurfaceColorMapperModuleWidget::setup()
     }
   if (d->colorRangeWidget)
     {
-    connect(d->colorRangeWidget, SIGNAL(rangeChanged(double, double)),
-            this, SLOT(setColorRange(double, double)));
-    connect(d->colorRangeWidget, SIGNAL(valueChanged(double, double)),
-            this, SLOT(setColorValue(double, double)));
+    //connect(d->colorRangeWidget, SIGNAL(rangeChanged(double, double)),
+    //        this, SLOT(setColorRange(double, double)));
+    connect(d->colorRangeWidget, SIGNAL(valuesChanged(double, double)),
+            this, SLOT(setColorValues(double, double)));
     }
+
+  // Set vtk renderer
+  qSlicerApplication * app = qSlicerApplication::application();
 
 }
 
@@ -128,12 +133,21 @@ void qSlicerSurfaceColorMapperModuleWidget::setup()
 void qSlicerSurfaceColorMapperModuleWidget::setInputVolumeNode(vtkMRMLNode* n)
 {
   Q_D(qSlicerSurfaceColorMapperModuleWidget);
-  
+
   vtkMRMLScalarVolumeNode* node = vtkMRMLScalarVolumeNode::SafeDownCast(n);
   vtkSlicerSurfaceColorMapperLogic* logic = vtkSlicerSurfaceColorMapperLogic::SafeDownCast(this->logic());
   if (node && logic)
     {
     logic->SetInputVolumeID(node->GetID());
+
+    vtkImageData* image = node->GetImageData();
+    double range[2];
+    image->GetScalarRange(range);
+    if (d->colorRangeWidget)
+      {
+      d->colorRangeWidget->setRange(range[0], range[1]);
+      std::cerr << "void qSlicerSurfaceColorMapperModuleWidget::setInputVolumeNode(): " << range[0] << ", " << range[1] << std::endl;
+      }
     }
 }
 
@@ -158,15 +172,22 @@ void qSlicerSurfaceColorMapperModuleWidget::setColorTableNode(vtkMRMLNode*)
 
 
 //-----------------------------------------------------------------------------
-void setColorRange(double min, double max)
+void qSlicerSurfaceColorMapperModuleWidget::setColorRange(double min, double max)
 {
   Q_D(qSlicerSurfaceColorMapperModuleWidget);
 }
 
 
 //-----------------------------------------------------------------------------
-void setColorValues(double min, double max)
+void qSlicerSurfaceColorMapperModuleWidget::setColorValues(double min, double max)
 {
   Q_D(qSlicerSurfaceColorMapperModuleWidget);
+  std::cerr << "void qSlicerSurfaceColorMapperModuleWidget::setColorValues(): " << min << ", " << max << std::endl;
+
+  vtkSlicerSurfaceColorMapperLogic* logic = vtkSlicerSurfaceColorMapperLogic::SafeDownCast(this->logic());
+  if (logic)
+    {
+    logic->ProcessWindowLevel(min, max);
+    }
 }
 
