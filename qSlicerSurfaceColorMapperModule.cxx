@@ -70,14 +70,14 @@ QString qSlicerSurfaceColorMapperModule::helpText()const
 //-----------------------------------------------------------------------------
 QString qSlicerSurfaceColorMapperModule::acknowledgementText()const
 {
-  return "This work was was partially funded by NIH grant 3P41RR013218-12S1";
+  return "This work is supported by NIH 5R01CA138586.";
 }
 
 //-----------------------------------------------------------------------------
 QStringList qSlicerSurfaceColorMapperModule::contributors()const
 {
   QStringList moduleContributors;
-  moduleContributors << QString("Jean-Christophe Fillion-Robin (Kitware)");
+  moduleContributors << QString("Junichi Tokuda (BWH)");
   return moduleContributors;
 }
 

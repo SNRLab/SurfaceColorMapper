@@ -41,16 +41,21 @@ public:
 public slots:
   virtual void setMRMLScene(vtkMRMLScene *newScene);
 
+  void enableMapping(int s);
   void setInputVolumeNode(vtkMRMLNode*);
   void setSurfaceModelNode(vtkMRMLNode*);
   void setColorTableNode(vtkMRMLNode*);
   void setColorRange(double min, double max);
   void setColorValues(double min, double max);
+  void enableScalarBar(int s);
+  void updateUnit(const QString & text);
 
 protected:
   QScopedPointer<qSlicerSurfaceColorMapperModuleWidgetPrivate> d_ptr;
   
   virtual void setup();
+  void forceRender();
+  
 
 private:
   Q_DECLARE_PRIVATE(qSlicerSurfaceColorMapperModuleWidget);

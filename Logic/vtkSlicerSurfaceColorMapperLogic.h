@@ -56,12 +56,12 @@ public:
   void   ProcessOuterLayer(double min, double max);
 
   void   SetInputVolumeID(const char* nodeID) { this->VolumeNodeID = nodeID; };
-  void   SetInputModelID(const char* nodeID) { this->ModelNodeID = nodeID; };
+  bool   SetInputModelID(const char* nodeID);
   void   SetColorTableNodeID(const char* nodeID) { this->ColorTableNodeID = nodeID; };
   void   UpdateTexture();
-  double TrilinearInterpolation(vtkMRMLScalarVolumeNode * vnode, double x[3]);
 
   void   SetProjectionMode(bool s) { this->ProjectionMode = s; };
+  void   SetEnabled(bool);
 
 protected:
   vtkSlicerSurfaceColorMapperLogic();
@@ -73,6 +73,8 @@ protected:
   std::string ColorTableNodeID;
   //ETX
 
+  double TrilinearInterpolation(vtkMRMLScalarVolumeNode * vnode, double x[3]);
+
   virtual void SetMRMLSceneInternal(vtkMRMLScene* newScene);
   /// Register MRML Node classes to Scene. Gets called automatically when the MRMLScene is attached to this logic class.
   virtual void RegisterNodes();
@@ -80,6 +82,7 @@ protected:
   virtual void OnMRMLSceneNodeAdded(vtkMRMLNode* node);
   virtual void OnMRMLSceneNodeRemoved(vtkMRMLNode* node);
 
+  bool                Enabled;
   bool                ProjectionMode;
   
   vtkDoubleArray*     PointValue;

@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>525</width>
-    <height>319</height>
+    <height>333</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -28,14 +28,14 @@
         <property name="formAlignment">
          <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
         </property>
-        <item row="0" column="0">
+        <item row="1" column="0">
          <widget class="QLabel" name="volumeLabel">
           <property name="text">
            <string>Input Volume</string>
           </property>
          </widget>
         </item>
-        <item row="0" column="1">
+        <item row="1" column="1">
          <widget class="qMRMLNodeComboBox" name="inputVolumeSelector">
           <property name="enabled">
            <bool>true</bool>
@@ -53,14 +53,14 @@
           </property>
          </widget>
         </item>
-        <item row="1" column="0">
+        <item row="2" column="0">
          <widget class="QLabel" name="modelLabel">
           <property name="text">
            <string>Surface Model</string>
           </property>
          </widget>
         </item>
-        <item row="1" column="1">
+        <item row="2" column="1">
          <widget class="qMRMLNodeComboBox" name="surfaceModelSelector">
           <property name="enabled">
            <bool>true</bool>
@@ -72,53 +72,84 @@
           </property>
          </widget>
         </item>
-        <item row="2" column="0">
-         <widget class="QLabel" name="label">
+        <item row="3" column="0">
+         <widget class="QLabel" name="colorMapLabel">
           <property name="text">
            <string>Color Map</string>
           </property>
          </widget>
         </item>
-        <item row="2" column="1">
+        <item row="3" column="1">
          <widget class="qMRMLColorTableComboBox" name="colorTableSelector">
           <property name="enabled">
            <bool>true</bool>
           </property>
          </widget>
         </item>
-        <item row="3" column="0">
-         <widget class="QLabel" name="label_2">
+        <item row="4" column="0">
+         <widget class="QLabel" name="colorRangeLabel">
           <property name="text">
            <string>Color Range</string>
           </property>
          </widget>
         </item>
-        <item row="3" column="1">
+        <item row="4" column="1">
          <widget class="qMRMLRangeWidget" name="colorRangeWidget"/>
         </item>
-       </layout>
-      </item>
-      <item>
-       <layout class="QHBoxLayout" name="horizontalLayout_2">
-        <item>
-         <spacer name="horizontalSpacer">
-          <property name="orientation">
-           <enum>Qt::Horizontal</enum>
-          </property>
-          <property name="sizeHint" stdset="0">
-           <size>
-            <width>40</width>
-            <height>20</height>
-           </size>
-          </property>
-         </spacer>
-        </item>
-        <item>
-         <widget class="QPushButton" name="pushButton">
+        <item row="0" column="0">
+         <widget class="QLabel" name="switchLabel">
           <property name="text">
-           <string>PushButton</string>
+           <string>Mapping</string>
           </property>
          </widget>
+        </item>
+        <item row="0" column="1">
+         <widget class="QCheckBox" name="mappingCheckBox">
+          <property name="text">
+           <string>ON</string>
+          </property>
+         </widget>
+        </item>
+        <item row="5" column="0">
+         <widget class="QLabel" name="scalarBarLabel">
+          <property name="text">
+           <string>Scalar Bar</string>
+          </property>
+         </widget>
+        </item>
+        <item row="5" column="1">
+         <layout class="QHBoxLayout" name="horizontalLayout">
+          <item>
+           <widget class="QCheckBox" name="scalarBarCheckBox">
+            <property name="text">
+             <string>ON</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <spacer name="horizontalSpacer">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>40</width>
+              <height>20</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+          <item>
+           <widget class="QLabel" name="unitLabel">
+            <property name="text">
+             <string>Unit:</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QLineEdit" name="unitLineEdit"/>
+          </item>
+         </layout>
         </item>
        </layout>
       </item>

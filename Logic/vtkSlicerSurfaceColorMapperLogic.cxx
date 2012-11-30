@@ -68,6 +68,7 @@ vtkSlicerSurfaceColorMapperLogic::vtkSlicerSurfaceColorMapperLogic()
   this->PointValue   = NULL;
   this->NeedModelUpdate = 1;
 
+  this->Enabled = false;
   this->Lower   = 0.0; 
   this->Upper   = 1.0; 
   this->Step    = 0.5; 
@@ -145,13 +146,42 @@ void vtkSlicerSurfaceColorMapperLogic::ProcessOuterLayer(double min, double max)
   UpdateTexture();
 }
 
+//---------------------------------------------------------------------------
+bool vtkSlicerSurfaceColorMapperLogic::SetInputModelID(const char* nodeID)
+{
+  this->ModelNodeID = nodeID;
+
+  vtkMRMLScene* scene  = this->GetMRMLScene();
+  if (!scene)
+    {
+    this->Enabled = true;
+    return false;
+    }
+
+  vtkMRMLModelNode* mnode
+    = vtkMRMLModelNode::SafeDownCast(scene->GetNodeByID(this->ModelNodeID.c_str()));
+  if (mnode)
+    {
+    vtkMRMLModelDisplayNode * dnode = mnode->GetModelDisplayNode();
+    this->Enabled = dnode->GetScalarVisibility();
+    }
+  else
+    {
+    this->Enabled = false;
+    }
+  return this->Enabled;
+}
+
 
 //---------------------------------------------------------------------------
 void vtkSlicerSurfaceColorMapperLogic::UpdateTexture()
 {
+  if (!this->Enabled)
+    {
+    return;
+    }
 
   vtkMRMLScene* scene  = this->GetMRMLScene();
-
   if (!scene)
     {
     std::cerr << "MRML scene node was not found." << std::endl;
@@ -259,35 +289,9 @@ void vtkSlicerSurfaceColorMapperLogic::UpdateTexture()
         value = TrilinearInterpolation(vnode, x);
         }
 
-      /*
-      if (init == 1)
-        {
-        min = max = this->PointValue->GetValue(0);
-        init = 0;
-        }
-      else if (value < min)
-        {
-        min = value;
-        }
-      else if (value > max)
-        {
-        max = value;
-        }
-      */
       this->PointValue->InsertValue(i, value);
       }
       
-    //double intensity = (this->PointValue->GetValue(i) - low) * scale;
-    //if (intensity > 255.0)
-    //  {
-    //  intensity = 255.0;
-    //  }
-    //else if (intensity < 0.0)
-    //  {
-    //  intensity = 0.0;
-    //  }
-    //unsigned char cv = (unsigned char) intensity;
-    //colors->InsertValue(i, cv);
     }
 
   mnode->AddPointScalars(this->PointValue);
@@ -303,6 +307,23 @@ void vtkSlicerSurfaceColorMapperLogic::UpdateTexture()
     {
     dnode->SetAndObserveColorNodeID(this->ColorTableNodeID.c_str());
     }
+}
+
+void vtkSlicerSurfaceColorMapperLogic::SetEnabled(bool s)
+{
+  vtkMRMLScene* scene  = this->GetMRMLScene();
+  if (!scene)
+    {
+    return;
+    }
+  vtkMRMLModelNode* mnode
+    = vtkMRMLModelNode::SafeDownCast(scene->GetNodeByID(this->ModelNodeID.c_str()));
+  if (mnode)
+    {
+    vtkMRMLModelDisplayNode * dnode = mnode->GetModelDisplayNode();
+    dnode->SetScalarVisibility(s);
+    }
+  this->Enabled = s;
 }
 
 

@@ -23,15 +23,25 @@
 #include "ui_qSlicerSurfaceColorMapperModule.h"
 
 #include "vtkImageData.h"
+#include <vtkColorTransferFunction.h>
+#include <vtkLookupTable.h>
+#include <vtkRenderer.h>
+#include <vtkRenderWindow.h>
+#include <vtkScalarBarActor.h>
+#include <vtkScalarBarWidget.h>
 
 #include "vtkSlicerSurfaceColorMapperLogic.h"
 
+#include "qMRMLThreeDView.h"
+#include "qMRMLThreeDWidget.h"
 #include "qSlicerApplication.h"
+#include "qSlicerLayoutManager.h"
 #include "vtkMRMLScene.h"
 
 #include "vtkMRMLScalarVolumeNode.h"
 #include "vtkMRMLModelNode.h"
 #include "vtkMRMLColorTableNode.h"
+#include "vtkMRMLProceduralColorNode.h"
 
 //-----------------------------------------------------------------------------
 /// \ingroup Slicer_QtModules_ExtensionTemplate
@@ -39,6 +49,9 @@ class qSlicerSurfaceColorMapperModuleWidgetPrivate: public Ui_qSlicerSurfaceColo
 {
 public:
   qSlicerSurfaceColorMapperModuleWidgetPrivate();
+  ~qSlicerSurfaceColorMapperModuleWidgetPrivate();
+
+  vtkScalarBarWidget* ScalarBarWidget;
 };
 
 //-----------------------------------------------------------------------------
@@ -47,6 +60,25 @@ public:
 //-----------------------------------------------------------------------------
 qSlicerSurfaceColorMapperModuleWidgetPrivate::qSlicerSurfaceColorMapperModuleWidgetPrivate()
 {
+  this->ScalarBarWidget = vtkScalarBarWidget::New();
+  this->ScalarBarWidget->GetScalarBarActor()->SetOrientationToVertical();
+  this->ScalarBarWidget->GetScalarBarActor()->SetNumberOfLabels(11);
+  this->ScalarBarWidget->GetScalarBarActor()->SetTitle("");
+  this->ScalarBarWidget->GetScalarBarActor()->SetLabelFormat(" %#8.3f");
+
+  this->ScalarBarWidget->GetScalarBarActor()->SetPosition(0.1, 0.1);
+  this->ScalarBarWidget->GetScalarBarActor()->SetWidth(0.1);
+  this->ScalarBarWidget->GetScalarBarActor()->SetHeight(0.8);
+  this->ScalarBarWidget->SetEnabled(false);
+}
+
+qSlicerSurfaceColorMapperModuleWidgetPrivate::~qSlicerSurfaceColorMapperModuleWidgetPrivate()
+{
+  if (this->ScalarBarWidget)
+    {
+    this->ScalarBarWidget->Delete();
+    this->ScalarBarWidget = 0;
+    }
 }
 
 //-----------------------------------------------------------------------------
@@ -102,6 +134,12 @@ void qSlicerSurfaceColorMapperModuleWidget::setup()
   d->setupUi(this);
   this->Superclass::setup();
 
+  if (d->mappingCheckBox)
+    {
+    connect(d->mappingCheckBox, SIGNAL(stateChanged(int)),
+            this, SLOT(enableMapping(int)));
+    }
+
   if (d->inputVolumeSelector)
     {
     connect(d->inputVolumeSelector, SIGNAL(currentNodeChanged(vtkMRMLNode*)),
@@ -124,11 +162,51 @@ void qSlicerSurfaceColorMapperModuleWidget::setup()
     connect(d->colorRangeWidget, SIGNAL(valuesChanged(double, double)),
             this, SLOT(setColorValues(double, double)));
     }
+  if (d->scalarBarCheckBox)
+    {
+    connect(d->scalarBarCheckBox, SIGNAL(stateChanged(int)),
+            this, SLOT(enableScalarBar(int)));
+    }
+  if (d->unitLineEdit)
+    {
+    connect(d->unitLineEdit, SIGNAL(textChanged(const QString&)),
+            this, SLOT(updateUnit(const QString&)));
+    }
+  
 
   // Set vtk renderer
+  //d->VTKScalarBar->setScalarBarWidget(d->ScalarBarWidget);
+
   qSlicerApplication * app = qSlicerApplication::application();
 
+  if (app && app->layoutManager())
+    {
+    qMRMLThreeDView* threeDView = app->layoutManager()->threeDWidget(0)->threeDView();
+    vtkRenderer* activeRenderer = app->layoutManager()->activeThreeDRenderer();
+    if (activeRenderer)
+      {
+      d->ScalarBarWidget->SetInteractor(activeRenderer->GetRenderWindow()->GetInteractor());
+      }
+    //connect(d->ScalarBarWidget, SIGNAL(modified()), threeDView, SLOT(scheduleRender()));
+    }
+
 }
+
+
+//-----------------------------------------------------------------------------
+void qSlicerSurfaceColorMapperModuleWidget::enableMapping(int s)
+{
+  Q_D(qSlicerSurfaceColorMapperModuleWidget);
+
+  vtkSlicerSurfaceColorMapperLogic* logic = vtkSlicerSurfaceColorMapperLogic::SafeDownCast(this->logic());
+  if (logic)
+    {
+    logic->SetEnabled(s);
+    }
+  enableScalarBar(s&&d->mappingCheckBox->isChecked());
+  forceRender();
+}
+
 
 //-----------------------------------------------------------------------------
 void qSlicerSurfaceColorMapperModuleWidget::setInputVolumeNode(vtkMRMLNode* n)
@@ -147,7 +225,6 @@ void qSlicerSurfaceColorMapperModuleWidget::setInputVolumeNode(vtkMRMLNode* n)
     if (d->colorRangeWidget)
       {
       d->colorRangeWidget->setRange(range[0], range[1]);
-      std::cerr << "void qSlicerSurfaceColorMapperModuleWidget::setInputVolumeNode(): " << range[0] << ", " << range[1] << std::endl;
       }
     }
 }
@@ -161,7 +238,8 @@ void qSlicerSurfaceColorMapperModuleWidget::setSurfaceModelNode(vtkMRMLNode* n)
   vtkSlicerSurfaceColorMapperLogic* logic = vtkSlicerSurfaceColorMapperLogic::SafeDownCast(this->logic());
   if (node && logic)
     {
-    logic->SetInputModelID(node->GetID());
+    bool s = logic->SetInputModelID(node->GetID());
+    d->mappingCheckBox->setChecked(s);
     }
 }
 
@@ -170,11 +248,26 @@ void qSlicerSurfaceColorMapperModuleWidget::setColorTableNode(vtkMRMLNode* n)
 {
   Q_D(qSlicerSurfaceColorMapperModuleWidget);
 
-  vtkMRMLColorTableNode* node = vtkMRMLColorTableNode::SafeDownCast(n);
+  vtkMRMLColorTableNode* colorNode = vtkMRMLColorTableNode::SafeDownCast(n);
   vtkSlicerSurfaceColorMapperLogic* logic = vtkSlicerSurfaceColorMapperLogic::SafeDownCast(this->logic());
-  if (node && logic)
+  if (colorNode && logic)
     {
-    logic->SetColorTableNodeID(node->GetID());
+    logic->SetColorTableNodeID(colorNode->GetID());
+    
+    if (colorNode->GetLookupTable())
+      {
+      d->ScalarBarWidget->GetScalarBarActor()->SetLookupTable(colorNode->GetLookupTable());
+      }
+    else
+      {
+      vtkMRMLProceduralColorNode *procColorNode = vtkMRMLProceduralColorNode::SafeDownCast(colorNode);
+      if (procColorNode)
+        {
+        d->ScalarBarWidget->GetScalarBarActor()->SetLookupTable(procColorNode->GetColorTransferFunction());
+        }
+      }
+    colorNode->Modified();
+    forceRender();
     }
 }
 
@@ -190,12 +283,67 @@ void qSlicerSurfaceColorMapperModuleWidget::setColorRange(double min, double max
 void qSlicerSurfaceColorMapperModuleWidget::setColorValues(double min, double max)
 {
   Q_D(qSlicerSurfaceColorMapperModuleWidget);
-  std::cerr << "void qSlicerSurfaceColorMapperModuleWidget::setColorValues(): " << min << ", " << max << std::endl;
-
   vtkSlicerSurfaceColorMapperLogic* logic = vtkSlicerSurfaceColorMapperLogic::SafeDownCast(this->logic());
-  if (logic)
+  qSlicerApplication * app = qSlicerApplication::application();
+  if (logic && app)
     {
     logic->ProcessWindowLevel(min, max);
+    if (d->ScalarBarWidget) // Update scalar range for the scalar bar
+      {
+      vtkMRMLColorNode* colorNode = vtkMRMLColorNode::SafeDownCast(d->colorTableSelector->currentNode());
+      colorNode->GetLookupTable()->SetRange(min, max);
+      }
     }
 }
 
+
+//-----------------------------------------------------------------------------
+void qSlicerSurfaceColorMapperModuleWidget::enableScalarBar(int s)
+{
+  Q_D(qSlicerSurfaceColorMapperModuleWidget);
+
+  if (d->ScalarBarWidget)
+    {
+    d->ScalarBarWidget->SetEnabled(s);
+    d->ScalarBarWidget->GetScalarBarActor()->Modified();
+    forceRender();
+    }
+}
+
+
+//-----------------------------------------------------------------------------
+void qSlicerSurfaceColorMapperModuleWidget::updateUnit(const QString & text)
+{
+  Q_D(qSlicerSurfaceColorMapperModuleWidget);
+
+  std::string str(text.toAscii());
+
+  if (d->ScalarBarWidget)
+    {
+    d->ScalarBarWidget->GetScalarBarActor()->SetTitle(text.toLatin1());
+    d->ScalarBarWidget->GetScalarBarActor()->Modified();
+    forceRender();
+    }
+
+}
+
+
+//-----------------------------------------------------------------------------
+void qSlicerSurfaceColorMapperModuleWidget::forceRender()
+{
+  Q_D(qSlicerSurfaceColorMapperModuleWidget);
+
+  qSlicerApplication * app = qSlicerApplication::application();
+  if (app)
+    {
+    vtkRenderer* activeRenderer = app->layoutManager()->activeThreeDRenderer();
+    if (activeRenderer)
+      {
+      vtkRenderWindow* rwindow = activeRenderer->GetRenderWindow();
+      if (rwindow)
+        {
+        rwindow->Render();
+        }
+      }
+    }
+}
